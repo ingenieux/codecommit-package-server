@@ -53,6 +53,7 @@ func main() {
 
 	router := bone.New()
 
+	router.Get("/", http.HandlerFunc(RootHandler))
 	router.Get("/repo/:id", http.HandlerFunc(RepoHandler))
 	router.Get("/repo/:id/*", http.HandlerFunc(RepoHandler))
 
@@ -66,6 +67,10 @@ func main() {
 	log.Info("Starting")
 
 	log.Fatal(httpServer.ListenAndServe())
+}
+
+func RootHandler(response http.ResponseWriter, request *http.Request) {
+	http.Redirect(response, request, "https://github.com/ingenieux/codecommit-package-server", 301)
 }
 
 func RepoHandler(response http.ResponseWriter, request *http.Request) {
