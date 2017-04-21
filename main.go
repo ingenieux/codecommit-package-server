@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	log "github.com/Sirupsen/logrus"
 	"github.com/go-zoo/bone"
 	"github.com/gorilla/handlers"
 	"net/http"
@@ -66,9 +65,11 @@ func main() {
 		ReadTimeout:  15 * time.Second,
 	}
 
-	log.Info("Starting")
+	err := httpServer.ListenAndServe()
 
-	log.Fatal(httpServer.ListenAndServe())
+	if nil != err {
+		panic(err)
+	}
 }
 
 func RootHandler(response http.ResponseWriter, request *http.Request) {
