@@ -82,7 +82,7 @@ func RepoHandler(response http.ResponseWriter, request *http.Request) {
 	sourcePath := fmt.Sprintf("https://console.aws.amazon.com/codecommit/home?region=%s#/repository/%s/browse/", region, repoId)
 
 	if region != "us-east-1" {
-		sourcePath = fmt.Sprintf("https://console-%s.aws.amazon.com/codecommit/home?region=%s#/repository/%s/browse/", region, region, repoId)
+		sourcePath = fmt.Sprintf("https://%s.console.aws.amazon.com/codecommit/home?region=%s#/repository/%s/browse/", region, region, repoId)
 	}
 
 	protocol := defaultProto
