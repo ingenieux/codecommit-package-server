@@ -39,13 +39,13 @@ var pageTemplate = template.Must(template.New("").Parse(`
 `))
 
 var hostname string = "codecommit.ingenieux.io"
-var region string = "us-east-1"
+var defaultRegion string = "us-east-1"
 var listenAddr string = "127.0.0.1:3001"
 var defaultProto string = "https"
 
 func main() {
 	flag.StringVar(&hostname, "hostname", hostname, "hostname to use")
-	flag.StringVar(&region, "region", region, "region to use")
+	flag.StringVar(&defaultRegion, "defaultRegion", defaultRegion, "default region to use")
 	flag.StringVar(&listenAddr, "listenAddr", listenAddr, "Address to Listen")
 	flag.StringVar(&defaultProto, "defaultProto", defaultProto, "Default Protocol (ssh / https)")
 
@@ -54,8 +54,10 @@ func main() {
 	router := bone.New()
 
 	router.Get("/", http.HandlerFunc(RootHandler))
-	router.Get("/repo/:id", http.HandlerFunc(RepoHandler))
-	router.Get("/repo/:id/*", http.HandlerFunc(RepoHandler))
+	router.Get("/repo/:repoSlug", http.HandlerFunc(RepoHandler))
+	router.Get("/repo/:repoSlug/*", http.HandlerFunc(RepoHandler))
+	router.Get("/:region/repo/:repoSlug", http.HandlerFunc(RepoHandler))
+	router.Get("/:region/repo/:repoSlug/*", http.HandlerFunc(RepoHandler))
 
 	httpServer := &http.Server{
 		Handler:      handlers.LoggingHandler(os.Stderr, router),
@@ -77,12 +79,18 @@ func RepoHandler(response http.ResponseWriter, request *http.Request) {
 	// https://git-codecommit.us-east-1.amazonaws.com/v1/repos/cowsurfing ||
 	// ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/cowsurfing
 
-	repoId := bone.GetValue(request, "id")
+	repoSlug := bone.GetValue(request, "repoSlug")
 
-	sourcePath := fmt.Sprintf("https://console.aws.amazon.com/codecommit/home?region=%s#/repository/%s/browse/", region, repoId)
+	regionToUse := defaultRegion
 
-	if region != "us-east-1" {
-		sourcePath = fmt.Sprintf("https://%s.console.aws.amazon.com/codecommit/home?region=%s#/repository/%s/browse/", region, region, repoId)
+	if suppliedRegion := bone.GetValue(request, "region"); "" != suppliedRegion {
+		regionToUse = suppliedRegion
+	}
+
+	sourcePath := fmt.Sprintf("https://console.aws.amazon.com/codecommit/home?region=%s#/repository/%s/browse/", regionToUse, repoSlug)
+
+	if regionToUse != "us-east-1" {
+		sourcePath = fmt.Sprintf("https://%s.console.aws.amazon.com/codecommit/home?region=%s#/repository/%s/browse/", regionToUse, regionToUse, repoSlug)
 	}
 
 	protocol := defaultProto
@@ -91,9 +99,15 @@ func RepoHandler(response http.ResponseWriter, request *http.Request) {
 		protocol = protocolParameter
 	}
 
+	repoId := fmt.Sprintf("%s/repo/%s", hostname, repoSlug)
+
+	if regionToUse != defaultRegion {
+		repoId = fmt.Sprintf("%s/%s/repo/%s", hostname, regionToUse, repoSlug)
+	}
+
 	repoInfo := RepoInfo{
-		RepoId:     fmt.Sprintf("%s/repo/%s", hostname, repoId),
-		RepoUrl:    fmt.Sprintf("%s://git-codecommit.%s.amazonaws.com/v1/repos/%s", protocol, region, repoId),
+		RepoId:     repoId,
+		RepoUrl:    fmt.Sprintf("%s://git-codecommit.%s.amazonaws.com/v1/repos/%s", protocol, regionToUse, repoSlug),
 		SourcePath: sourcePath,
 		Protocol:   protocol,
 	}
